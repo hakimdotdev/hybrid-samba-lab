@@ -32,7 +32,7 @@ class IPConfigWindow(ttk.Frame):
         self.ip_entry.pack()
 
         # Create the "Subnetzmaske" label as a child of the network_frame widget
-        ttk.Label(network_frame, text="Subnetzmaske:").pack()
+        ttk.Label(network_frame, text="Subnetz CIDR (/24):").pack()
         self.subnet_entry = ttk.Entry(network_frame)
         self.subnet_entry.pack()
 
@@ -140,7 +140,7 @@ class IPConfigWindow(ttk.Frame):
         except subprocess.CalledProcessError:
             print("Failed to remove existing databases.")
             exit(1)
-
+        ###### TODO Provision Ausschließen String role und dns
         # Upgrade the server to a domain controller in non-interactive mode
         #try:
         #    subprocess.run(["samba-tool", "domain", "provision", "--use-rfc2307", "--non-interactive", "--realm="+realm, "--domain="+domain, "--server-role="DC", "--dns-backend="SAMBA_INTERNAL", "--adminpass="+password], check=True)
