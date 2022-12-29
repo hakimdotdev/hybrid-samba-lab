@@ -1,0 +1,6 @@
+vbox_guest_ip: "192.168.56.101"
+subnet: "24"
+gateway: "192.168.56.1"
+dns_server: "8.8.8.8"
+domain: "example.com"
+samba_password: "secret"

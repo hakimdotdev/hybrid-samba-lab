@@ -1,0 +1,13 @@
+- hosts: all
+  tasks:
+  - include_role:
+      name: create_vm
+  - include_role:
+      name: configure_samba_ad_dc
+    vars:
+      ipaddr: "{{ vbox_guest_ip }}"
+      subnet: "{{ subnet }}"
+      gateway: "{{ gateway }}"
+      dnssrv: "{{ dns_server }}"
+      domain: "{{ domain }}"
+      password: "{{ samba_password }}"
