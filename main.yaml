@@ -1,0 +1,77 @@
+---
+- name: Provision virtual machine
+  hosts: localhost
+  become: true
+  vars:
+    ipaddr: "{{ ip_entry }}"
+    subnet: "{{ subnet_entry }}"
+    gateway: "{{ gateway_entry }}"
+    dnssrv: "{{ dnssrv_enty }}"
+    domain: "{{ domain_entry }}"
+    domain_type: "{{ domain_type }}"
+  tasks:
+  - name: Create VirtualBox VM
+    vboxmanage_guest:
+      name: "{{ domain }}"
+      state: present
+      iso: "~/iso/ubuntu-22.04.iso"
+      iso_path: "~/iso"
+      iso_name: "ubuntu-22.04.iso"
+      memory: 2048
+      cpus: 2
+      disk_size: 20GB
+
+  - name: Configure VirtualBox VM network
+    vboxmanage_guest:
+      name: "{{ domain }}"
+      state: running
+      network_adapter:
+        - name: "eth0"
+          ip: "{{ ipaddr }}"
+          netmask: "{{ subnet }}"
+          gateway: "{{ gateway }}"
+          dns_server: "{{ dnssrv }}"
+          domain: "{{ domain }}"
+      adapter_type: "{{ adapter_type }}"
+
+  - name: Wait for SSH to be available
+    wait_for_connection:
+      host: "{{ domain }}"
+      port: 22
+      timeout: 30
+
+  - name: Install required packages
+    apt
+      name:
+        - samba
+        - samba-common
+        - samba-common-bin
+        - smbclient
+        - winbind
+        - krb5
+      state: present
+
+  - name: Create samba user
+    shell: |
+      adduser --system --home /var/lib/samba --disabled-password --disabled-login --no-create-home --gecos 'Samba Domain Controller' samba
+      echo -e "samba\nsamba" | smbpasswd -a samba
+
+  - name: Join domain
+    shell: |
+      net ads join createupn=samba/{{ domain }}@{{ domain }} -U samba
+      net rpc vampire -S {{ domain }}
+      net cache flush
+      net rpc user add testuser
+      net rpc password testuser
+      net rpc rights grant '{{ domain }}\\testuser' SeMachineAccountPrivilege SePrintOperatorPrivilege
+    when: domain_type == 'dc' or domain_type == 'member'
+
+  - name: Provision new domain
+    shell: |
+      samba-tool domain provision --realm={{ domain }} --domain={{ domain }} --server-role=dc --adminpass=samba
+    when: domain_type == 'dc'
+
+  - name: Restart samba service
+    service:
+      name: samba
+      state: restarted
